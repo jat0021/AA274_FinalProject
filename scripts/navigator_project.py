@@ -13,7 +13,7 @@ from geometry_msgs.msg import PoseStamped
 class Navigator:
 
     def __init__(self):
-        rospy.init_node('navigator', anonymous=True)
+        rospy.init_node('navigator_project', anonymous=True)
 
         self.plan_resolution = 0.25
         self.plan_horizon = 15

@@ -1,0 +1,5 @@
+<launch>
+  <node pkg= "turtlebot_control" type= "navigator_project.py" name="navigator_project"/>
+  <node pkg= "turtlebot_control" type= "supervisor_project.py" name="supervisor_project"/>
+  <node pkg= "turtlebot_control" type= "controller_project.py" name="controller_project"/>
+</launch>

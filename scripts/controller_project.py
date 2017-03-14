@@ -13,7 +13,7 @@ from std_msgs.msg import MultiArrayDimension
 class Controller:
 
     def __init__(self):
-        rospy.init_node('turtlebot_controller', anonymous=True)
+        rospy.init_node('controller_project', anonymous=True)
         #rospy.Subscriber('/gazebo/model_states', ModelStates, self.callback)
         ### problem 3 part 1 ###
         self.trans_listener = tf.TransformListener()
@@ -83,7 +83,7 @@ class Controller:
             om = 0.0
         else:
             # use self.x self.y and self.theta to compute the right control input here     
-            distErr = 0.1  
+            distErr = 0.2  
 #            angleErr = 0.3
             xErr = abs(self.x_g-self.x)
             yErr = abs(self.y_g-self.y)
