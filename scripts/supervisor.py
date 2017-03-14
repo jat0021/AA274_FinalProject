@@ -4,6 +4,7 @@ from gazebo_msgs.msg import ModelStates
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import MultiArrayDimension
 from std_msgs.msg import String
+from nav_msgs.msg import Path
 import tf
 import numpy as np
 
@@ -14,7 +15,8 @@ class Supervisor:
     self.pos_sp_pub = rospy.Publisher('/turtlebot_controller/position_goal', Float32MultiArray, queue_size=10)
     self.controlType = rospy.Publisher('/turtlebot_controller/control_type', String, queue_size=10)
     self.nav_goal = rospy.Publisher('/turtlebot_controller/nav_goal', Float32MultiArray, queue_size = 10)
-    rospy.Subscriber('/turtlebot_controller/toSupervisor', String, self.updateFlag)
+    rospy.Subscriber('/turtlebot_controller/path_goal', Path, self.update_path)
+    rospy.Subscriber('/turtlebot_controller/toSupervisor', String, self.update_flag)
     self.trans_listener = tf.TransformListener()
     self.trans_broad = tf.TransformBroadcaster()
     self.has_tag_location = False
@@ -23,6 +25,8 @@ class Supervisor:
     self.th_g = 0.0
     self.state = "stop"
     self.controlFlag = "not done"
+    self.path = np.array([[0,0,-np.pi/4.0],[0,-1,-np.pi/2.0],[1,-2,np.pi/2.0]])
+    self.goal_idx = 0
     # rospy.Subscriber('/gazebo/model_states', ModelStates, self.gazebo_callback)
 
 #  def gazebo_callback(self, data):
@@ -37,9 +41,13 @@ class Supervisor:
 #                    "mobile_base",
 #                    "world")
 
-  def updateFlag(self, data):
+  def update_flag(self, data):
     rospy.loginfo('received: %s', data.data)
     self.controlFlag = data.data
+
+  def update_path(self, data):
+    rospy.loginfo('recieved: %s', data.poses)
+#    self.path = data.data.poses
 
 
   def loop(self):
@@ -59,15 +67,26 @@ class Supervisor:
       # spin in place for now and look for a tag???
 	  ######################################
       # code to publish location goal here?
+    # for now, let's just say it it always has a tag/isn't looking for one
+    self.has_tag_location = True
+
     if self.has_tag_location == False and self.controlFlag == "not done": 
       self.state = "searching" 
     elif self.controlFlag == "at dest":
-      self.state = "stop" 
+      if self.goal_idx == self.path.shape[0]:
+        self.state = "stop"
+      else:
+        # set next destination:
+        self.x_g = self.path[self.goal_idx,0]
+        self.y_g = self.path[self.goal_idx,1]
+        self.th_g = self.path[self.goal_idx,2]
+        self.state = "normal" 
+        self.goal_idx = self.goal_idx + 1
     else:
       self.state = "normal"
-      self.x_g = translation[0]
-      self.y_g = translation[1]
-      self.th_g = rotation[3]
+      #self.x_g = translation[0]
+      #self.y_g = translation[1]
+      #self.th_g = rotation[3]
     goal = Float32MultiArray()
     goal.layout.dim.append(MultiArrayDimension())
     goal.layout.dim[0].label="length"
