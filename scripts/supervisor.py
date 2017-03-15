@@ -15,7 +15,6 @@ class Supervisor:
     self.pos_sp_pub = rospy.Publisher('/turtlebot_controller/position_goal', Float32MultiArray, queue_size=10)
     self.controlType = rospy.Publisher('/turtlebot_controller/control_type', String, queue_size=10)
     self.nav_goal = rospy.Publisher('/turtlebot_controller/nav_goal', Float32MultiArray, queue_size = 10)
-    rospy.Subscriber('/turtlebot_controller/path_goal', Path, self.update_path)
     rospy.Subscriber('/turtlebot_controller/toSupervisor', String, self.update_flag)
     self.trans_listener = tf.TransformListener()
     self.trans_broad = tf.TransformBroadcaster()
@@ -44,10 +43,6 @@ class Supervisor:
   def update_flag(self, data):
     rospy.loginfo('received: %s', data.data)
     self.controlFlag = data.data
-
-  def update_path(self, data):
-    rospy.loginfo('recieved: %s', data.poses)
-#    self.path = data.data.poses
 
 
   def loop(self):
