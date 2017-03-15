@@ -21,8 +21,10 @@ class Supervisor:
         self.trans_listener = tf.TransformListener()
         self.trans_broad = tf.TransformBroadcaster()
 
+        # Subscribe to rviz to get nav goals
         rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.rviz_goal_callback)    # rviz "2D Nav Goal"
 
+        # Fiducial location initialization
         self.waypoint_locations = {}    # dictionary that caches the most updated locations of each mission waypoint
         self.waypoint_offset = PoseStamped()
         self.waypoint_offset.pose.position.z = .4    # waypoint is located 40cm in front of the AprilTag, facing it
@@ -31,6 +33,16 @@ class Supervisor:
         self.waypoint_offset.pose.orientation.y = quat[1]
         self.waypoint_offset.pose.orientation.z = quat[2]
         self.waypoint_offset.pose.orientation.w = quat[3]
+
+        # Subscriber to mission goals
+        rospy.Subscriber('/mission', Int32MultiArray, self.updateMission)
+        self.mission = []
+
+        # Debug publisher with tag locations
+        self.debug_pub = rospy.Publisher('/turtlebot_controller/supDebug', Float32MultiArray, queue_size = 10)
+
+    def updateMission(self,data):
+        self.mission = data.data
 
     def rviz_goal_callback(self, msg):
         pose_to_xyth(msg.pose)    # example usage of the function pose_to_xyth (defined above)
@@ -41,8 +53,17 @@ class Supervisor:
             try:
                 self.waypoint_offset.header.frame_id = "/tag_{0}".format(tag_number)
                 self.waypoint_locations[tag_number] = self.trans_listener.transformPose("/map", self.waypoint_offset)
+
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                 pass
+
+            if tag_number in self.waypoint_locations:
+                # Publish debug message
+                debugMsg = Float32MultiArray()
+                debugMsg.data = np.array([tag_number, self.waypoint_locations[tag_number].pose.position.x, self.waypoint_locations[tag_number].pose.position.y])
+                self.debug_pub.publish(debugMsg)
+
+
 
     def run(self):
         rate = rospy.Rate(1) # 1 Hz, change this to whatever you like
