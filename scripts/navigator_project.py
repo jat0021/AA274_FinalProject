@@ -65,6 +65,9 @@ class Navigator:
             self.cur_nav_goal = self.nav_sp
             self.need_new_path = True
         self.send_pose_sp()
+        
+    def round_to_res(self, x):
+        return self.plan_resolution * round(x/self.plan_resolution)
 
     def send_pose_sp(self):
         try:
@@ -78,8 +81,8 @@ class Navigator:
         if self.occupancy and self.has_robot_location and self.nav_sp:
             state_min = (-int(round(self.plan_horizon)), -int(round(self.plan_horizon)))
             state_max = (int(round(self.plan_horizon)), int(round(self.plan_horizon)))
-            x_init = (int(round(robot_translation[0])), int(round(robot_translation[1])))
-            x_goal = (int(round(self.nav_sp[0])), int(round(self.nav_sp[1])))
+            x_init = (self.round_to_res(robot_translation[0]), self.round_to_res(robot_translation[1]))
+            x_goal = (self.round_to_res(self.nav_sp[0]), self.round_to_res(self.nav_sp[1]))
             astar = AStar(state_min,state_max,x_init,x_goal,self.occupancy,self.plan_resolution)
 
             debug = Float32MultiArray()

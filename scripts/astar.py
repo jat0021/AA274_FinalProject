@@ -5,8 +5,6 @@ import matplotlib.patches as patches
 # Represents a motion planning problem to be solved using A*
 class AStar(object):
     # TODO: fill me in! (with your solution to problem 1)
-    
-    ##### copied from problem 1 #########
     def __init__(self, statespace_lo, statespace_hi, x_init, x_goal, occupancy, resolution=1):
         self.statespace_lo = statespace_lo    # state space lower bound (e.g., (-5, -5))
         self.statespace_hi = statespace_hi    # state space upper bound (e.g., (5, 5))
@@ -21,6 +19,7 @@ class AStar(object):
         self.f_score = {}       # dictionary of the f score (estimated cost from start to goal passing through state)
         self.g_score = {}       # dictionary of the g score (cost-to-go from start to state)
         self.came_from = {}     # dictionary keeping track of each state's parent to reconstruct the path
+
         self.open_set.append(x_init)
         self.g_score[x_init] = 0
         self.f_score[x_init] = self.distance(x_init,x_goal)
@@ -60,43 +59,37 @@ class AStar(object):
     #           x - tuple state
     # OUTPUT: List of neighbors that are free, as a list of TUPLES
     def get_neighbors(self, x):
+        free_neighbors = []
+        
+        xn = [x[0] + self.resolution, x[0] + self.resolution, x[0], x[0] - self.resolution, 
+              x[0] - self.resolution, x[0] - self.resolution, x[0], x[0] + self.resolution]
+        yn = [x[1], x[1] + self.resolution, x[1] + self.resolution, x[1] + self.resolution,
+              x[1], x[1] - self.resolution, x[1] - self.resolution, x[1] - self.resolution]
+              
+        n_edges = len(xn)
+        n_shift = n_edges/2
+        
+        x_shift = [self.resolution, self.resolution, 0.0, -self.resolution, 
+                   -self.resolution, -self.resolution, 0.0, self.resolution]
+        y_shift = [0.0, self.resolution, self.resolution, self.resolution,
+                   0.0, -self.resolution, -self.resolution, -self.resolution]
+                  
+        center_free = [False]*n_edges
+        edge_free = [center_free]*n_edges
+        
+        for i in range(n_edges):
+            center_free[i] = self.is_free((xn[i], yn[i]))
+                
+        for i in range(n_edges):
+            xcenter = xn[i]
+            ycenter = yn[i]
+            for j in range(n_edges):
+                edge_free[i][j] = self.is_free((xcenter + x_shift[j], ycenter + y_shift[j]))
+            if all(edge_free[i]):
+                free_neighbors.append((xn[i], yn[i]))
+                   
+        return free_neighbors
         # TODO: fill me in!
-        # assuming x[0] is x and x[1] is y
-        neighbors = []
-        # start with checking up
-        testLoc = (x[0],x[1]+self.resolution)
-        if self.is_free(testLoc):
-            neighbors.append(testLoc)
-        # check up-right
-        testLoc = (x[0]+self.resolution, x[1]+self.resolution)
-        if self.is_free(testLoc):
-            neighbors.append(testLoc)
-        # check right
-        testLoc = (x[0]+self.resolution, x[1])
-        if self.is_free(testLoc):
-            neighbors.append(testLoc)
-        # check right-down
-        testLoc = (x[0]+self.resolution,x[1]-self.resolution)
-        if self.is_free(testLoc):
-            neighbors.append(testLoc)
-        # check down
-        testLoc = (x[0],x[1]-self.resolution)
-        if self.is_free(testLoc):
-            neighbors.append(testLoc)
-        # check down-left
-        testLoc = (x[0]-self.resolution, x[1]-self.resolution)
-        if self.is_free(testLoc):
-            neighbors.append(testLoc)
-        # check left
-        testLoc = (x[0]-self.resolution, x[1])
-        if self.is_free(testLoc):
-            neighbors.append(testLoc)
-        # check up-left
-        testLoc = (x[0]-self.resolution, x[1]+self.resolution)
-        if self.is_free(testLoc):
-            neighbors.append(testLoc)
-        return neighbors
-               
 
     # Gets the state in open_set that has the lowest f_score
     # INPUT: None
@@ -127,11 +120,11 @@ class AStar(object):
 
         self.occupancy.plot(fig.number)
 
-        solution_path = np.array(self.path) * self.resolution
+        solution_path = np.array(self.path)
         plt.plot(solution_path[:,0],solution_path[:,1], color="green", linewidth=2, label="solution path", zorder=10)
-        plt.scatter([self.x_init[0]*self.resolution, self.x_goal[0]*self.resolution], [self.x_init[1]*self.resolution, self.x_goal[1]*self.resolution], color="green", s=30, zorder=10)
-        plt.annotate(r"$x_{init}$", np.array(self.x_init)*self.resolution + np.array([.2, 0]), fontsize=16)
-        plt.annotate(r"$x_{goal}$", np.array(self.x_goal)*self.resolution + np.array([.2, 0]), fontsize=16)
+        plt.scatter([self.x_init[0], self.x_goal[0]], [self.x_init[1], self.x_goal[1]], color="green", s=30, zorder=10)
+        plt.annotate(r"$x_{init}$", np.array(self.x_init) + np.array([.2, 0]), fontsize=16)
+        plt.annotate(r"$x_{goal}$", np.array(self.x_goal) + np.array([.2, 0]), fontsize=16)
         plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.03), fancybox=True, ncol=3)
 
         plt.axis('equal')
@@ -142,33 +135,30 @@ class AStar(object):
     # from self.x_init to self.x_goal inside the variable self.path
     # INPUT: None
     # OUTPUT: Boolean, True if a solution from x_init to x_goal was found
-    def solve(self):    
-        # open and closed set already initialized in init
-        # set of f and g already intialized
+    def solve(self):
         while len(self.open_set)>0:
             # TODO: fill me in!
-            x_curr = self.find_best_f_score()
-            if x_curr == self.x_goal:
+            xcurrent = self.find_best_f_score()
+            if xcurrent == self.x_goal:
                 self.path = self.reconstruct_path()
                 return True
-            self.open_set.remove(x_curr)
-            self.closed_set.append(x_curr)
-            for x_neigh in self.get_neighbors(x_curr):
-                if (x_neigh in self.closed_set):
+            self.open_set.remove(xcurrent)
+            self.closed_set.append(xcurrent)
+            xneighbors = self.get_neighbors(xcurrent)
+            for n in xneighbors:
+                if n in self.closed_set:
                     continue
-                temp_g_score = self.g_score[x_curr] + self.distance(x_curr, x_neigh)
-                if x_neigh not in self.open_set:
-                    self.open_set.append(x_neigh)
-                elif temp_g_score > self.g_score[x_neigh]:
+                temp_g = self.g_score[xcurrent] + self.distance(xcurrent, n)
+                if n not in self.open_set:
+                    self.open_set.append(n)
+                elif temp_g > self.g_score[n]:
                     continue
-                self.came_from[x_neigh] = x_curr
-                self.g_score[x_neigh] = temp_g_score
-                self.f_score[x_neigh] = temp_g_score + self.distance(x_neigh,self.x_goal)
-
+                self.came_from[n] = xcurrent
+                self.g_score[n] = temp_g
+                self.f_score[n] = temp_g + self.distance(n, self.x_goal)
 
         return False
 
-####################
 
 # A 2D state space grid with a set of rectangular obstacles. The grid is fully deterministic
 class DetOccupancyGrid2D(object):
