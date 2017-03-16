@@ -58,6 +58,8 @@ class Supervisor:
     self.waypoint_offset.pose.orientation.z = quat[2]
     self.waypoint_offset.pose.orientation.w = quat[3]
 
+    self.all_tag_numbers = range(7)
+
     # Subscriber to mission goals
     rospy.Subscriber('/mission', Int32MultiArray, self.updateMission)
     self.mission = []
@@ -90,12 +92,18 @@ class Supervisor:
         pass
 
       if tag_number in self.waypoint_locations:
+        wp = self.waypoint_locations[tag_number].pose
+          self.trans_broad.sendTransform((wp.position.x, wp.position.y, 0),
+            (wp.orientation.x, wp.orientation.y, wp.orientation.z, wp.orientation.w),
+            rospy.Time.now(),
+            "waypoint_{0}".format(tag_number),
+            "/map")
+
         # Publish debug message
         debugMsg = Float32MultiArray()
         debugMsg.data = np.array([tag_number, self.waypoint_locations[tag_number].pose.position.x, self.waypoint_locations[tag_number].pose.position.y])
         self.debug_pub.publish(debugMsg)
         self.tags_found[tag_number] = True
-
 
   def updateFlag(self, data):
     rospy.loginfo('received: %s', data.data)
@@ -140,9 +148,9 @@ class Supervisor:
           self.path_index = 1
           self.path_point = new_path_locs[0,:]
           self.end_of_path = True
-  
+
   def loop(self):
-  
+
       ######################################
 	    # Your state machine logic goes here #
 	    ######################################
@@ -179,8 +187,8 @@ class Supervisor:
         self.th_g = self.goal_locations[0,0]
         self.path_valid = 0
 
-    #elif self.has_tag_location == False and self.controlFlag == "not done": 
-    #  self.state = "searching" 
+    #elif self.has_tag_location == False and self.controlFlag == "not done":
+    #  self.state = "searching"
     elif self.controlFlag == "at dest":
       if self.end_of_path:
         if self.goal_idx == len(self.goal_locations):
@@ -191,7 +199,7 @@ class Supervisor:
           self.x_g = self.goal_locations[self.goal_idx,0]
           self.y_g = self.goal_locations[self.goal_idx,1]
           self.th_g = self.goal_locations[self.goal_idx,2]
-          self.state = "normal" 
+          self.state = "normal"
           self.goal_idx = self.goal_idx + 1
           self.path_valid = 0
       else:
@@ -207,7 +215,7 @@ class Supervisor:
 
     else:
       self.state = "normal"
-    
+
     navTo = Float32MultiArray()
     navTo.layout.dim.append(MultiArrayDimension())
     navTo.layout.dim[0].label = "length"
@@ -215,7 +223,7 @@ class Supervisor:
     navTo.layout.dim[0].stride = 1
     navTo.data = [self.x_g,self.y_g,self.th_g]
     self.nav_goal.publish(navTo)
-    
+
     driveTo = Float32MultiArray()
     driveTo.layout.dim.append(MultiArrayDimension())
     driveTo.layout.dim[0].label = "length"
@@ -231,7 +239,7 @@ class Supervisor:
     self.debug.publish(out)
 
     self.controlType.publish(self.state)
-    
+
   def run(self):
     rate = rospy.Rate(10) # 10 Hz
     while not rospy.is_shutdown():
