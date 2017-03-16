@@ -83,7 +83,7 @@ class Controller:
             om = 0.0
         else:
             # use self.x self.y and self.theta to compute the right control input here     
-            distErr = 0.1  
+            distErr = 0.25  
 #            angleErr = 0.3
             xErr = abs(self.x_g-self.x)
             yErr = abs(self.y_g-self.y)

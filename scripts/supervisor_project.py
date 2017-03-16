@@ -30,11 +30,10 @@ class Supervisor:
     self.trans_listener = tf.TransformListener()
     self.trans_broad = tf.TransformBroadcaster()
     rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.rviz_goal_callback)    # rviz "2D Nav Goal"
-    self.has_tag_location = False
-    self.state = "normal"
+    self.has_tag_locs = False
+    self.state = "manual driving"
     self.controlFlag = "not done"
     self.goal_idx = 1   # for tracking which tag number we're going to
-    # rospy.Subscriber('/gazebo/model_states', ModelStates, self.gazebo_callback)
     # use goal locations to store the tag locations in the order that we want to visit them for now
     self.goal_locations = np.array([[0.0, 3.0, 0.0]])#,[3,1,0]])
     self.path_locations = self.goal_locations
@@ -62,28 +61,20 @@ class Supervisor:
     # Subscriber to mission goals
     rospy.Subscriber('/mission', Int32MultiArray, self.updateMission)
     self.mission = []
+    self.tags_found = [False,False,False,False,False,False,False,False,False,False]
 
     # Debug publisher with tag locations (float32 version)
     self.debug_pub = rospy.Publisher('/turtlebot_controller/supDebug', Float32MultiArray, queue_size = 10)
-
-#  def gazebo_callback(self, data):
-#    pose = data.pose[data.name.index("mobile_base")]
-#    quaternion = (pose.orientation.x,
-#                  pose.orientation.y,
-#                  pose.orientation.z,
-#                  pose.orientation.w)
-#    self.trans_broad.sendTransform((pose.position.x,pose.position.y,0),
-#                    quaternion,
-#                    rospy.Time.now(),
-#                    "mobile_base",
-#                    "world")
 
   def updateMission(self,data):
       self.mission = data.data
 
   def update_path_validity(self, flag):
       rospy.loginfo('recieved: %s', flag.data)
-      self.path_valid = flag.data
+      if flag.data == 0:
+        # false: need new path
+        self.path_valid = flag.data
+      # else: don't change flag until have gotten path back
 
   def rviz_goal_callback(self, msg):
       self.man_pose = pose_to_xyth(msg.pose)    # example usage of the function pose_to_xyth (defined above)
@@ -103,17 +94,21 @@ class Supervisor:
         debugMsg = Float32MultiArray()
         debugMsg.data = np.array([tag_number, self.waypoint_locations[tag_number].pose.position.x, self.waypoint_locations[tag_number].pose.position.y])
         self.debug_pub.publish(debugMsg)
+        self.tags_found[tag_number] = True
 
 
   def updateFlag(self, data):
     rospy.loginfo('received: %s', data.data)
-    self.controlFlag = data.data
+    if data.data == "at dest":
+      self.controlFlag = data.data
+    # else don't update the flag, let state machine reset it
 
   def path_update(self, path):
     if not(self.path_valid):
+      self.path_valid = 1
       # need a new path, so update
       n = len(path.poses)
-      self.debug.publish(str(n))
+      #self.debug.publish(str(n))
       if n == 1:
         # put the one and only point on the path
         x = path.poses[0].pose.position.x
@@ -145,105 +140,14 @@ class Supervisor:
           self.path_index = 1
           self.path_point = new_path_locs[0,:]
           self.end_of_path = True
-
-      
-
-#  def path_update(self, path):
-#    if self.update_cnt%50 == 0:
-#      n = len(path.poses)
-#      if n == 1:
-#        # put the one and only point on the path
-#        x = path.poses[0].pose.position.x
-#        y = path.poses[0].pose.position.y
-#        new_path_locs = np.array([[x,y,0]])
-#        self.path_index = 0
-#      else:
-#        for i in range(0,n-1):
-#          x = path.poses[i].pose.position.x
-#          x2 = path.poses[i + 1].pose.position.x
-#          y = path.poses[i].pose.position.y
-#          y2 = path.poses[i + 1].pose.position.y
-#          th = np.arctan2((y2 - y), (x2 - x))
-#          if i == 0:
-#            new_path_locs = np.array([x,y,th])
-#          else:
-#            new_path_locs = np.vstack((new_path_locs, [x,y,th]))
-#        # add last point:
-#        x = path.poses[-1].pose.position.x
-#        y = path.poses[-1].pose.position.y
-#        th = new_path_locs[-1,2]
-#        new_path_locs = np.vstack((new_path_locs, [x,y,th]))
-#
-#
-#      if np.any(new_path_locs[:,0:2] != self.path_locations[self.path_index:,0:2]):
-#        # have a new path! takes into accound differing path lens too
-#        self.path_locations = new_path_locs
-#        self.path_index = 1
-#        self.path_point = self.path_locations[0,:]
-#        if self.path_index == self.path_locations.shape[0]:
-#          self.end_of_path = True
-#        else:
-#          self.end_of_path = False
-#      # else don't change the current path/path_index
-#    self.update_cnt += 1
-  
-#    if n != self.last_n:
-#      self.path_index = 1
-#    self.last_n = n
-#    
-#    if n>2:
-#      obtained_point = False
-#      
-#      while not obtained_point:
-#        if self.path_index >= n-1:
-#          self.path_index -= 1
-#        else:
-#          obtained_point = True
-#      
-#      x = path.poses[self.path_index].pose.position.x
-#      x2 = path.poses[self.path_index + 1].pose.position.x
-#      y = path.poses[self.path_index].pose.position.y
-#      y2 = path.poses[self.path_index + 1].pose.position.y
-#      th = np.arctan2((y2 - y), (x2 - x))
-#      
-#    elif n == 2:
-#      x = path.poses[1].pose.position.x
-#      x1 = path.poses[0].pose.position.x
-#      y = path.poses[1].pose.position.y
-#      y1 = path.poses[0].pose.position.y
-#      th = np.arctan2((y - y1), (x - x1))
-#      self.path_index = 1
-#      self.end_of_path = True
-#
-#    else:
-#      x = self.path_point[0]
-#      y = self.path_point[1]
-#      th = self.path_point[2]
-#      self.path_index = 0
-#      self.end_of_path = True
-#      
-#    self.path_point = [x, y, th]
   
   def loop(self):
-    try:
-      # tf knows where the tag is
-      # (translation,rotation) = self.trans_listener.lookupTransform("/world", "/tag_0", rospy.Time(0))
-      (translation,rotation) = self.trans_listener.lookupTransform("/map", "/tag_0", rospy.Time(0))
-      self.has_tag_location = True
-    except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-      # tf doesn't know where the tag is
-      translation = (0,0,0)
-      rotation = (0,0,0,1)
-      self.has_tag_location = False
   
       ######################################
 	    # Your state machine logic goes here #
-      # spin in place for now and look for a tag???
 	    ######################################
-      # code to publish location goal here?
-    self.has_tag_location = True    # for now
+    self.update_waypoints()
     if self.state == "manual driving":
-      self.update_waypoints()
       self.path_point = self.man_pose
       driveTo = Float32MultiArray()
       driveTo.layout.dim.append(MultiArrayDimension())
@@ -252,6 +156,28 @@ class Supervisor:
       driveTo.layout.dim[0].stride = 1
       driveTo.data = self.path_point
       self.pos_sp_pub.publish(driveTo)
+      all_tags = True
+      for tag_num in self.mission:
+        self.debug.publish(str(tag_num) + " " + str(self.tags_found))
+        if not(self.tags_found[tag_num]):
+          all_tags = False
+      self.has_tag_locs = all_tags
+      if self.has_tag_locs and (len(self.mission) != 0):
+        self.state = "normal"
+        self.controlFlag = "not done"
+        self.goal_idx = 1
+        for i in range(0,len(self.mission)):
+          tag_num = self.mission[i]
+          tag_x = self.waypoint_locations[tag_num].pose.position.x
+          tag_y = self.waypoint_locations[tag_num].pose.position.y
+          if i == 0:
+            self.goal_locations = np.array([tag_x,tag_y,0])
+          else:
+            self.goal_locations = np.vstack((self.goal_locations,[tag_x,tag_y,0]))
+        self.x_g = self.goal_locations[0,0]
+        self.y_g = self.goal_locations[0,1]
+        self.th_g = self.goal_locations[0,0]
+        self.path_valid = 0
 
     #elif self.has_tag_location == False and self.controlFlag == "not done": 
     #  self.state = "searching" 
@@ -261,11 +187,13 @@ class Supervisor:
           self.state = "stop"
         else:
           # set next destination:
+          self.control_flag = "not done"
           self.x_g = self.goal_locations[self.goal_idx,0]
           self.y_g = self.goal_locations[self.goal_idx,1]
           self.th_g = self.goal_locations[self.goal_idx,2]
           self.state = "normal" 
           self.goal_idx = self.goal_idx + 1
+          self.path_valid = 0
       else:
         # set next path point
         self.path_point = self.path_locations[self.path_index,:]
@@ -279,11 +207,6 @@ class Supervisor:
 
     else:
       self.state = "normal"
-      #self.x_g = translation[0]
-      #self.y_g = translation[1]
-      #self.th_g = rotation[3]
-
-    # dummy supervisor constant goal:
     
     navTo = Float32MultiArray()
     navTo.layout.dim.append(MultiArrayDimension())
@@ -302,7 +225,10 @@ class Supervisor:
     self.pos_sp_pub.publish(driveTo)
     # debug:
     #self.debug.publish(str(self.goal_idx))
-    # self.debug.publish(str(self.path_point) + str(self.path_index) + " "+str(self.path_locations.shape[0]))
+    #self.debug.publish(str(self.path_point) + str(self.goal_idx) + " " + str(self.path_index) + " "+str(self.path_locations.shape[0]))
+    #self.debug.publish(str(self.tags_found))
+    out = str(self.goal_locations)
+    self.debug.publish(out)
 
     self.controlType.publish(self.state)
     
