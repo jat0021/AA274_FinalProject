@@ -13,7 +13,7 @@ from geometry_msgs.msg import PoseStamped
 class Navigator:
 
     def __init__(self):
-        rospy.init_node('navigator_project', anonymous=True)
+        rospy.init_node('navigator', anonymous=True)
 
         self.plan_resolution = 0.25
         self.plan_horizon = 15
@@ -56,6 +56,9 @@ class Navigator:
     def nav_sp_callback(self,msg):
         self.nav_sp = (msg.data[0],msg.data[1],msg.data[2])
         self.send_pose_sp()
+        
+    def round_to_res(self, x):
+        return self.plan_resolution * round(x/self.plan_resolution)
 
     def send_pose_sp(self):
         try:
@@ -67,10 +70,12 @@ class Navigator:
             self.has_robot_location = False
 
         if self.occupancy and self.has_robot_location and self.nav_sp:
+            #x_init = (int(round(robot_translation[0])), int(round(robot_translation[1])))
+            #x_goal = (int(round(self.nav_sp[0])), int(round(self.nav_sp[1])))
             state_min = (-int(round(self.plan_horizon)), -int(round(self.plan_horizon)))
             state_max = (int(round(self.plan_horizon)), int(round(self.plan_horizon)))
-            x_init = (int(round(robot_translation[0])), int(round(robot_translation[1])))
-            x_goal = (int(round(self.nav_sp[0])), int(round(self.nav_sp[1])))
+            x_init = (self.round_to_res(robot_translation[0]), self.round_to_res(robot_translation[1]))
+            x_goal = (self.round_to_res(self.nav_sp[0]), self.round_to_res(self.nav_sp[1]))
             astar = AStar(state_min,state_max,x_init,x_goal,self.occupancy,self.plan_resolution)
 
             rospy.loginfo("Computing navigation plan")
