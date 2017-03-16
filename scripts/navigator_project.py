@@ -85,13 +85,13 @@ class Navigator:
             x_goal = (self.round_to_res(self.nav_sp[0]), self.round_to_res(self.nav_sp[1]))
             astar = AStar(state_min,state_max,x_init,x_goal,self.occupancy,self.plan_resolution)
 
-            debug = Float32MultiArray()
-            debug.layout.dim.append(MultiArrayDimension())
-            debug.layout.dim[0].label = "length"
-            debug.layout.dim[0].size = len(self.cur_path)
-            debug.layout.dim[0].stride = 1
-            debug.data = self.cur_path
-            self.nav_debug.publish(debug)
+            #debug = Float32MultiArray()
+            #debug.layout.dim.append(MultiArrayDimension())
+            #debug.layout.dim[0].label = "length"
+            #debug.layout.dim[0].size = len(self.cur_path)
+            #debug.layout.dim[0].stride = 1
+            #debug.data = self.cur_path
+            #self.nav_debug.publish(debug)
 
             rospy.loginfo("Computing navigation plan")
             if self.stillValid(astar) and not(self.need_new_path):
@@ -123,6 +123,7 @@ class Navigator:
                     
                     path_msg = Path()
                     path_msg.header.frame_id = 'map'
+                    self.cur_path = []
                     for state in astar.path:
                         pose_st = PoseStamped()
                         pose_st.pose.position.x = state[0]

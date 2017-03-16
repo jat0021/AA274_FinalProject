@@ -36,7 +36,7 @@ class Supervisor:
     self.goal_idx = 1   # for tracking which tag number we're going to
     # rospy.Subscriber('/gazebo/model_states', ModelStates, self.gazebo_callback)
     # use goal locations to store the tag locations in the order that we want to visit them for now
-    self.goal_locations = np.array([[0.5, 3.0, 0.0]])#,[3,1,0]])
+    self.goal_locations = np.array([[0.0, 3.0, 0.0]])#,[3,1,0]])
     self.path_locations = self.goal_locations
     self.x_g = self.goal_locations[0,0]
     self.y_g = self.goal_locations[0,1]
@@ -113,6 +113,7 @@ class Supervisor:
     if not(self.path_valid):
       # need a new path, so update
       n = len(path.poses)
+      self.debug.publish(str(n))
       if n == 1:
         # put the one and only point on the path
         x = path.poses[0].pose.position.x
@@ -300,7 +301,7 @@ class Supervisor:
     driveTo.data = self.path_point
     self.pos_sp_pub.publish(driveTo)
     # debug:
-    self.debug.publish(str(self.goal_idx))
+    #self.debug.publish(str(self.goal_idx))
     # self.debug.publish(str(self.path_point) + str(self.path_index) + " "+str(self.path_locations.shape[0]))
 
     self.controlType.publish(self.state)

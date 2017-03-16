@@ -97,9 +97,9 @@ class Controller:
                 rho = np.sqrt((self.x_g-self.x)*(self.x_g-self.x)+(self.y_g-self.y)*(self.y_g-self.y))
                 alpha = np.arctan2((self.y_g-self.y),(self.x_g-self.x))-self.theta
                 delta = np.arctan2((self.y_g-self.y),(self.x_g-self.x))-self.th_g
-                k1 = .5
-                k2 = .5
-                k3 = .5
+                k1 = .8
+                k2 = .8
+                k3 = .8
 
                 #Define control inputs (V,om) - without saturation constraints
                 V = k1*rho*np.cos(alpha)
