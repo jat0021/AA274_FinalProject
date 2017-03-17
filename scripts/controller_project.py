@@ -104,7 +104,7 @@ class Controller:
                 om = 0.0
             else:
                 self.flagState = "not done"
-                if abs(np.arctan2((self.y_g - self.y), (self.x_g - self.x)) - self.theta) >= np.pi/2:
+                if abs(np.arctan2((self.y_g - self.y), (self.x_g - self.x)) - self.wrapToPi(self.theta)) >= np.pi/2:
                     self.rotate_to_path = True
                 if not self.rotate_to_path:
                     rho = np.sqrt((self.x_g-self.x)*(self.x_g-self.x)+(self.y_g-self.y)*(self.y_g-self.y))
@@ -122,9 +122,9 @@ class Controller:
                     V = np.sign(V)*min(0.5, np.abs(V))
                     om = np.sign(om)*min(1, np.abs(om))
                 else:
-                    if abs(np.arctan2((self.y_g - self.y), (self.x_g - self.x)) - self.theta) > 0.1:
+                    if abs(np.arctan2((self.y_g - self.y), (self.x_g - self.x)) - self.wrapToPi(self.theta)) > 0.5:
                         V = 0.0
-                        om = np.sign(np.arctan2((self.y_g - self.y), (self.x_g - self.x)) - self.theta)*0.5
+                        om = np.sign(np.arctan2((self.y_g - self.y), (self.x_g - self.x)) - self.wrapToPi(self.theta))*0.5
                     else:
                         V = 0.0
                         om = 0.0
@@ -138,6 +138,9 @@ class Controller:
         cmd.linear.x = cmd_x_dot
         cmd.angular.z = cmd_theta_dot
         return cmd
+
+    def wrapToPi(self, a):
+      return (a + np.pi) % (2*np.pi) - np.pi
 
     def run(self):
         rate = rospy.Rate(10) # 10 Hz

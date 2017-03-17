@@ -119,11 +119,21 @@ class Supervisor:
       n = len(path.poses)
       #self.debug.publish(str(n))
       if n == 1:
-        # put the one and only point on the path
-        x = path.poses[0].pose.position.x
-        y = path.poses[0].pose.position.y
-        self.path_locations = np.array([[x,y,0]])
-        self.path_index = 0
+        ## put the one and only point on the path
+        #x = path.poses[0].pose.position.x
+        #y = path.poses[0].pose.position.y
+        #self.path_locations = np.array([[x,y,0]])
+        #self.path_index = 0
+        # most likely lost the path, start navigating toward next known goal location?
+        # set all this stuff for now and drive towards and hopefully a path will get planned
+        self.path_locations = self.goal_locations[goal_idx,:]
+        self.path_valid = 0
+        self.control_flag = "not done"
+        self.x_g = self.goal_locations[self.goal_idx,0]
+        self.y_g = self.goal_locations[self.goal_idx,1]
+        self.th_g = self.goal_locations[self.goal_idx,2]
+        self.path_point = self.goal_locations[goal_idx,:]
+        self.state = "normal"
       else:
         for i in range(0,n-1):
           x = path.poses[i].pose.position.x
