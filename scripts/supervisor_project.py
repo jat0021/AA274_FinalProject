@@ -93,11 +93,11 @@ class Supervisor:
 
       if tag_number in self.waypoint_locations:
         wp = self.waypoint_locations[tag_number].pose
-          self.trans_broad.sendTransform((wp.position.x, wp.position.y, 0),
-            (wp.orientation.x, wp.orientation.y, wp.orientation.z, wp.orientation.w),
-            rospy.Time.now(),
-            "waypoint_{0}".format(tag_number),
-            "/map")
+        self.trans_broad.sendTransform((wp.position.x, wp.position.y, 0),
+          (wp.orientation.x, wp.orientation.y, wp.orientation.z, wp.orientation.w),
+          rospy.Time.now(),
+          "waypoint_{0}".format(tag_number),
+          "/map")
 
         # Publish debug message
         debugMsg = Float32MultiArray()
