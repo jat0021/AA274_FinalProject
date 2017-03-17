@@ -59,7 +59,7 @@ class Supervisor:
     self.waypoint_offset.pose.orientation.z = quat[2]
     self.waypoint_offset.pose.orientation.w = quat[3]
 
-    self.all_tag_numbers = range(7)
+    self.all_tag_numbers = range(8)
 
     # Subscriber to mission goals
     rospy.Subscriber('/mission', Int32MultiArray, self.updateMission)
