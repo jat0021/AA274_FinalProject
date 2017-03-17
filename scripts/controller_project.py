@@ -32,6 +32,7 @@ class Controller:
         self.flagState = "not done"
         self.controlMode = "normal"
         self.has_base_footprint = True
+        self.rotate_to_path = False
 
     def updateControlType(self, data):
         rospy.loginfo('received: %s', data.data)
@@ -83,7 +84,7 @@ class Controller:
             om = 0.0
         else:
             # use self.x self.y and self.theta to compute the right control input here     
-            distErr = 0.2  
+            distErr = 0.25  
 #            angleErr = 0.3
             xErr = abs(self.x_g-self.x)
             yErr = abs(self.y_g-self.y)
@@ -94,20 +95,32 @@ class Controller:
                 om = 0.0
             else:
                 self.flagState = "not done"
-                rho = np.sqrt((self.x_g-self.x)*(self.x_g-self.x)+(self.y_g-self.y)*(self.y_g-self.y))
-                alpha = np.arctan2((self.y_g-self.y),(self.x_g-self.x))-self.theta
-                delta = np.arctan2((self.y_g-self.y),(self.x_g-self.x))-self.th_g
-                k1 = .5
-                k2 = .5
-                k3 = .5
+                if abs(self.wrapToPi(np.arctan2((self.y_g - self.y), (self.x_g - self.x)) - self.wrapToPi(self.theta))) >= np.pi/2:
+                    self.rotate_to_path = True
+                if not self.rotate_to_path:
+                    rho = np.sqrt((self.x_g-self.x)*(self.x_g-self.x)+(self.y_g-self.y)*(self.y_g-self.y))
+                    alpha = self.wrapToPi(np.arctan2((self.y_g-self.y),(self.x_g-self.x))-self.wrapToPi(self.theta))
+                    delta = self.wrapToPi(np.arctan2((self.y_g-self.y),(self.x_g-self.x))-self.wrapToPi(self.th_g))
+                    k1 = .8
+                    k2 = .8
+                    k3 = .8
 
-                #Define control inputs (V,om) - without saturation constraints
-                V = k1*rho*np.cos(alpha)
-                om = k2*alpha+k1*(np.sinc(alpha/np.pi)*np.cos(alpha))*(alpha+k3*delta)
+                    #Define control inputs (V,om) - without saturation constraints
+                    V = k1*rho*np.cos(alpha)
+                    om = k2*alpha+k1*(np.sinc(alpha/np.pi)*np.cos(alpha))*(alpha+k3*delta)
 
-                # Apply saturation limits
-                V = np.sign(V)*min(0.5, np.abs(V))
-                om = np.sign(om)*min(1, np.abs(om))
+                    # Apply saturation limits
+                    V = np.sign(V)*min(0.5, np.abs(V))
+                    om = np.sign(om)*min(1, np.abs(om))
+                else:
+                    if abs(self.wrapToPi(np.arctan2((self.y_g - self.y), (self.x_g - self.x)) - self.wrapToPi(self.theta))) > 0.1:
+                        V = 0.0
+                        om = np.sign(self.wrapToPi(np.arctan2((self.y_g - self.y), (self.x_g - self.x)) - self.wrapToPi(self.theta)))*0.5
+                    else:
+                        V = 0.0
+                        om = 0.0
+                        self.rotate_to_path = False
+                    
 
         cmd_x_dot = V # forward velocity
         cmd_theta_dot = om
@@ -116,6 +129,9 @@ class Controller:
         cmd.linear.x = cmd_x_dot
         cmd.angular.z = cmd_theta_dot
         return cmd
+
+    def wrapToPi(self, a):
+        return (a+np.pi)%(2.0*np.pi)-np.pi
 
     def run(self):
         rate = rospy.Rate(10) # 10 Hz
