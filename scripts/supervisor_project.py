@@ -127,6 +127,7 @@ class Supervisor:
         # most likely lost the path, start navigating toward next known goal location?
         # set all this stuff for now and drive towards and hopefully a path will get planned
         self.path_locations = self.goal_locations[goal_idx,:]
+        self.path_index = 0
         self.path_valid = 0
         self.control_flag = "not done"
         self.x_g = self.goal_locations[self.goal_idx,0]
@@ -213,7 +214,8 @@ class Supervisor:
           self.state = "normal"
           self.goal_idx = self.goal_idx + 1
           self.path_valid = 0
-      else:
+          self.end_of_path = False
+      elif self.path_valid == 1:
         # set next path point
         self.path_point = self.path_locations[self.path_index,:]
         self.path_index += 1
