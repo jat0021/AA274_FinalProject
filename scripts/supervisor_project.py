@@ -151,7 +151,10 @@ class Supervisor:
         # add last point:
         x = path.poses[-1].pose.position.x
         y = path.poses[-1].pose.position.y
-        th = new_path_locs[-1,2]
+        try:
+          th = new_path_locs[-1,2]
+        except:
+          th = 0.0
         new_path_locs = np.vstack((new_path_locs, [x,y,th]))
         self.path_locations = new_path_locs
         if n>1:
