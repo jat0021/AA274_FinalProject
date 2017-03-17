@@ -94,8 +94,8 @@ class Controller:
                 V = 0.0
                 om = 0.0
             else:
-                if abs(self.th_g - self.theta) >= np.pi/2:
-                    self.rotate to path = True
+                if abs(np.arctan2((self.y_g - self.y), (self.x_g - self.x)) - self.theta) >= np.pi/2:
+                    self.rotate_to_path = True
                 if not self.rotate_to_path:
                     rho = np.sqrt((self.x_g-self.x)*(self.x_g-self.x)+(self.y_g-self.y)*(self.y_g-self.y))
                     alpha = np.arctan2((self.y_g-self.y),(self.x_g-self.x))-self.theta
@@ -112,9 +112,9 @@ class Controller:
                     V = np.sign(V)*min(0.5, np.abs(V))
                     om = np.sign(om)*min(1, np.abs(om))
                 else:
-                    if abs(self.th_g - self.theta) > 0.1:
+                    if abs(np.arctan2((self.y_g - self.y), (self.x_g - self.x)) - self.theta) > 0.1:
                         V = 0.0
-                        om = np.sign(self.th_g - self.theta)*0.5
+                        om = np.sign(np.arctan2((self.y_g - self.y), (self.x_g - self.x)) - self.theta)*0.5
                     else:
                         V = 0.0
                         om = 0.0

@@ -81,6 +81,9 @@ class AStar(object):
     # OUTPUT: A tuple, the state found in open_set that has the lowest f_score
     def find_best_f_score(self):
         return min(self.open_set, key=lambda x: self.f_score[x])
+        
+    def round_to_res(self, x):
+        return self.resolution * round(x/self.resolution)
 
     # Use the came_from map to reconstruct a path from the initial location
     # to the goal location
