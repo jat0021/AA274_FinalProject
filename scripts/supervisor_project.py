@@ -27,6 +27,7 @@ class Supervisor:
     rospy.Subscriber('/turtlebot_controller/toSupervisor', String, self.updateFlag)
     self.debug = rospy.Publisher('/turtlebot_controller/supervisor_debug', String, queue_size=10)
     rospy.Subscriber('/turtlebot_controller/path_validity', Int32MultiArray, self.update_path_validity)
+    self.tolerance = rospy.Publisher('turtlebot_controller/error_tolerance', String, queue_size = 10)
     self.trans_listener = tf.TransformListener()
     self.trans_broad = tf.TransformBroadcaster()
     rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.rviz_goal_callback)    # rviz "2D Nav Goal"
@@ -208,7 +209,9 @@ class Supervisor:
         self.path_index += 1
         if self.path_index == self.path_locations.shape[0]:
           self.end_of_path = True
+          self.tolerance.publish("end")
         else:
+          self.tolerance.publish("path")
           self.end_of_path = False
         self.controlFlag = "not done"
         self.state = "normal"

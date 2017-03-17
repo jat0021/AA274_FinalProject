@@ -23,6 +23,7 @@ class Controller:
         self.toSupervisor = rospy.Publisher('/turtlebot_controller/toSupervisor', String, queue_size=10)
         self.debug = rospy.Publisher('/turtlebot_controller/debug', Float32MultiArray, queue_size=10)
         self.pub = rospy.Publisher('cmd_vel_mux/input/navi', Twist, queue_size=10)
+        rospy.Subscriber('/turtlebot_controller/error_tolerance', String, self.updateTolerance)
         self.x = 0.0
         self.y = 0.0
         self.theta = 0.0
@@ -33,6 +34,7 @@ class Controller:
         self.controlMode = "normal"
         self.has_base_footprint = True
         self.rotate_to_path = False
+        self.distErr = 0.25
 
     def updateControlType(self, data):
         rospy.loginfo('received: %s', data.data)
@@ -44,6 +46,14 @@ class Controller:
         self.x_g = data.data[0]
         self.y_g = data.data[1]
         self.th_g = data.data[2] 
+        
+    def updateTolerance(self, data):
+        rospy.loginfo('received: %s', data.data)
+        if data.data == "end":
+          self.distErr = 0.1
+        else:
+          self.distErr = 0.25
+        
         
 
 #    def callback(self, data):
@@ -83,17 +93,17 @@ class Controller:
             V = 0.0
             om = 0.0
         else:
-            # use self.x self.y and self.theta to compute the right control input here     
-            distErr = 0.25  
+            # use self.x self.y and self.theta to compute the right control input here      
 #            angleErr = 0.3
             xErr = abs(self.x_g-self.x)
             yErr = abs(self.y_g-self.y)
             thErr = abs(self.th_g-self.theta)
-            if xErr<distErr and yErr<distErr: # and thErr<angleErr:
+            if xErr<self.distErr and yErr<self.distErr: # and thErr<angleErr:
                 self.flagState = "at dest"
                 V = 0.0
                 om = 0.0
             else:
+                self.flagState = "not done"
                 if abs(np.arctan2((self.y_g - self.y), (self.x_g - self.x)) - self.theta) >= np.pi/2:
                     self.rotate_to_path = True
                 if not self.rotate_to_path:
