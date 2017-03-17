@@ -60,34 +60,19 @@ class AStar(object):
     # OUTPUT: List of neighbors that are free, as a list of TUPLES
     def get_neighbors(self, x):
         free_neighbors = []
-        
-        xn = [x[0] + self.resolution, x[0] + self.resolution, x[0], x[0] - self.resolution, 
-              x[0] - self.resolution, x[0] - self.resolution, x[0], x[0] + self.resolution]
-        yn = [x[1], x[1] + self.resolution, x[1] + self.resolution, x[1] + self.resolution,
-              x[1], x[1] - self.resolution, x[1] - self.resolution, x[1] - self.resolution]
+        xc = self.round_to_res(x[0])
+        yc = self.round_to_res(x[1])
+        xn = [xc + self.resolution, xc + self.resolution, xc, xc - self.resolution, 
+              xc - self.resolution, xc - self.resolution, xc, xc + self.resolution]
+        yn = [yc, yc + self.resolution, yc + self.resolution, yc + self.resolution,
+              yc, yc - self.resolution, yc - self.resolution, yc - self.resolution]
               
         n_edges = len(xn)
-        n_shift = n_edges/2
-        
-        x_shift = [self.resolution, self.resolution, 0.0, -self.resolution, 
-                   -self.resolution, -self.resolution, 0.0, self.resolution]
-        y_shift = [0.0, self.resolution, self.resolution, self.resolution,
-                   0.0, -self.resolution, -self.resolution, -self.resolution]
-                  
-        center_free = [False]*n_edges
-        edge_free = [center_free]*n_edges
         
         for i in range(n_edges):
-            center_free[i] = self.is_free((xn[i], yn[i]))
-                
-        for i in range(n_edges):
-            xcenter = xn[i]
-            ycenter = yn[i]
-            for j in range(n_edges):
-                edge_free[i][j] = self.is_free((xcenter + x_shift[j], ycenter + y_shift[j]))
-            if all(edge_free[i]):
+            if self.is_free((xn[i], yn[i])):
                 free_neighbors.append((xn[i], yn[i]))
-                   
+                
         return free_neighbors
         # TODO: fill me in!
 
