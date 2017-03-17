@@ -4,6 +4,7 @@ from gazebo_msgs.msg import ModelStates
 from std_msgs.msg import Float32MultiArray, Int32MultiArray
 from std_msgs.msg import MultiArrayDimension
 from std_msgs.msg import String
+from std_msgs.msg import Bool
 from nav_msgs.msg import Path
 import tf
 import numpy as np
@@ -23,11 +24,12 @@ class Supervisor:
     self.pos_sp_pub = rospy.Publisher('/turtlebot_controller/position_goal', Float32MultiArray, queue_size=10)
     self.controlType = rospy.Publisher('/turtlebot_controller/control_type', String, queue_size=10)
     self.nav_goal = rospy.Publisher('/turtlebot_controller/nav_goal', Float32MultiArray, queue_size = 10)
-    self.path_goal = rospy.Subscriber('/turtlebot_controller/path_goal', Path, self.path_update)
+    rospy.Subscriber('/turtlebot_controller/path_goal', Path, self.path_update)
     rospy.Subscriber('/turtlebot_controller/toSupervisor', String, self.updateFlag)
     self.debug = rospy.Publisher('/turtlebot_controller/supervisor_debug', String, queue_size=10)
     rospy.Subscriber('/turtlebot_controller/path_validity', Int32MultiArray, self.update_path_validity)
     self.tolerance = rospy.Publisher('turtlebot_controller/error_tolerance', String, queue_size = 10)
+    self.success = rospy.Publisher('/success',Bool,queue_size = 10)
     self.trans_listener = tf.TransformListener()
     self.trans_broad = tf.TransformBroadcaster()
     rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.rviz_goal_callback)    # rviz "2D Nav Goal"
@@ -205,6 +207,9 @@ class Supervisor:
       if self.end_of_path:
         if self.goal_idx == len(self.goal_locations):
           self.state = "stop"
+          done_flag = Bool()
+          done_flag.data = True
+          self.success.publish(done_flag)
         else:
           # set next destination:
           self.control_flag = "not done"
@@ -217,6 +222,8 @@ class Supervisor:
           self.end_of_path = False
       elif self.path_valid == 1:
         # set next path point
+        if self.path_index == len(self.path_locations):
+          self.path_index = self.path_index-1
         self.path_point = self.path_locations[self.path_index,:]
         self.path_index += 1
         if self.path_index == self.path_locations.shape[0]:
